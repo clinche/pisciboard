@@ -1,23 +1,22 @@
 <?php
 	session_start();
 	include_once('config.php');
+	include_once('secret.php');
 
 	if (!isset($_GET['code']) && !isset($_GET['refresh']))
 	{
-		header('Location:https://api.intra.42.fr/oauth/authorize?client_id=f9c797955fcf3d904068f650778a7fb15eaf480f8b5528b636060a9ce053a175&redirect_uri=https%3A%2F%2Fphp.dournois.fr%2Fexams%2Ftoken1.php&response_type=code');
+		header('Location:https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-e649edccc324538cb1124f15de8a73eddf712387a35ebdccb0fb7ee9f79b2dfe&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Ftoken.php&response_type=code');
 		exit();
 	}
 	if (isset($_GET['refresh']))
 	{
-		$uid = "";
-		$secret = "";
+		global $uid, $secret, $after_auth;
 		$url = "https://api.intra.42.fr/oauth/token";
-		$after_auth = "https://php.dournois.fr/exams/token1.php";
 		$postParams = [
 			'grant_type' => "refresh_token",
 			'client_id' => $uid,
 			'client_secret' => $secret,
-			'refresh_token' => $_SESSION['refreshtoks'][0],
+			'refresh_token' => $_SESSION['refreshtok'],
 			'redirect_uri'=> $after_auth
 		];
 
@@ -36,19 +35,15 @@
 			$token = $data->access_token;
 			$second_token = $data->refresh_token;
 		}
-		error_log("token1.php:39 tried refresh and got a new token: {$data->access_token}");
-		$_SESSION['tokens'] = array($token);
-		$_SESSION['refreshtokstmp'] = array($second_token);
-		header('Location:/exams/token2.php?refresh');
-		exit();
+		$_SESSION['token'] = $token;
+		$_SESSION['refreshtok'] = $second_token;
+		header('Location: /index.php');
 	}
 	
 	if (isset($_GET['code']))
 	{
-		$uid = "";
-		$secret = "";
+		global $uid, $secret, $after_auth;
 		$url = "https://api.intra.42.fr/oauth/token";
-		$after_auth = "https://php.dournois.fr/exams/token1.php";
 		$postParams = [
 			'grant_type' => "authorization_code",
 			'client_id' => $uid,
@@ -71,18 +66,15 @@
 		{
 			$token = $data->access_token;
 			$second_token = $data->refresh_token;
-			$_SESSION['currtoken'] = $token;
+			$_SESSION['token'] = $token;
 			$_SESSION['currtokennb'] = 0;
-			$_SESSION['tokens'] = array($token);
-			$_SESSION['refreshtoks'] = array($second_token);
 			$_SESSION['currreq'] = 0;
+			header('Location: /index.php');
 		}
 		else
 		{
 			var_dump($data);
 			die();
 		}
-		header('Location:/exams/token2.php');
-		exit();
 	}
 ?>

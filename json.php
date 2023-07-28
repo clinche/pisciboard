@@ -1,8 +1,12 @@
 <?php
 session_start();
 include_once('config.php');
+set_time_limit(0);
 
-if (isset($_GET['json']) && isset($_GET['year']) && isset($_GET['month']) && isset($_GET['exam']))
+if (isset($_GET['json']) 
+	&& isset($_GET['year']) 
+	&& isset($_GET['month']) 
+	&& isset($_GET['exam']))
 {
 	if (!isset($_SESSION['year']))
 	{
@@ -10,31 +14,46 @@ if (isset($_GET['json']) && isset($_GET['year']) && isset($_GET['month']) && iss
 		$_SESSION['month'] = $_GET['month'];
 		$_SESSION['exam'] = $_GET['exam'];
 	}
-	else if ($_SESSION['year'] != $_GET['year'] || $_SESSION['month'] != $_GET['month'] || $_SESSION['exam'] != $_GET['exam'])
+	else if ($_SESSION['year'] != $_GET['year'] 
+		|| $_SESSION['month'] != $_GET['month'] 
+		|| $_SESSION['exam'] != $_GET['exam'])
 	{
 		$_SESSION['year'] = $_GET['year'];
 		$_SESSION['month'] = $_GET['month'];
 		$_SESSION['exam'] = $_GET['exam'];
 		$_SESSION['examusers'] = null;
 		$_SESSION['usersjson'] = null;
+		$_SESSION['jsonrefresh'] = 0;
 	}
 	if (!isset($_SESSION['examusers']))
 	{
-		error_log("json.php:8 entering get_users()");
-		get_users();
-		error_log("json.php:10 entering first_update()");
+		$examid = get_exam_id();
+		if (!$examid)
+			output_json("Error: Exam not found");
+		get_users($examid);
 		$userinfo = first_update();
 		$_SESSION['usersjson'] = $userinfo;
 	}
 	else
 	{
-		error_log("json.php:15 entering update_weighted_users()");
 		$userinfo = update_weighted_users();
 		$_SESSION['usersjson'] = $userinfo;
 	}
 	$_SESSION['jsonrefresh'] += 1;
 	output_json($_SESSION['usersjson']);
 	//view_data($apicall);
+}
+
+function get_exam_id()
+{
+	$examid = 0;
+	$apicall = api_req("/v2/me");
+	foreach ($apicall->projects_users as $project)
+	{
+		if ($project->project->slug == $_SESSION['exam'])
+			$examid = $project->project->id;
+	}
+	return ($examid);
 }
 
 function first_update()
@@ -94,6 +113,12 @@ function first_update()
 			}
 			if ($project->project->slug == "c-piscine-final-exam")
 			{
+				$examfinal = $project->final_mark;
+				if ($examfinal == null)
+					$examfinal = 0;
+			}
+			if ($project->project->slug == $_SESSION['exam'])
+			{
 				$grade = $project->final_mark;
 			}
 		}
@@ -101,7 +126,7 @@ function first_update()
 			$grade = 0;
 		$oldresults = array($lastc, $exam00, $exam01, $exam02);
 		$cote = determine_cote($oldresults);
-		$item = array($grade, $apicall->login, $apicall->image_url, $_SESSION['jsonrefresh'], 100, 1, 9, $cote, $oldresults);
+		$item = array($grade, $apicall->login, $apicall->image->link, $_SESSION['jsonrefresh'], 100, 1, 9, $cote, $oldresults);
 		array_push($userinfo, $item);
 		usleep(400000);
 	}
@@ -142,7 +167,6 @@ function update_weighted_users()
 		$jsonuser[4] = $weight;
 	}
 	$maxweight = extract_maxweight($jsonarray);
-	$maxweightnb = count_maxweight($jsonarray, $maxweight);
 	shuffle($jsonarray);
 	error_log("json.php:131 doing users update. should update 40 times.");
 	foreach ($jsonarray as &$user)
@@ -218,7 +242,7 @@ function update_user($user)
 	$apicall = api_req("/v2/users/".$user[1]);
 	foreach ($apicall->projects_users as $project)
 	{
-		if ($project->project->slug == "c-piscine-final-exam")
+		if ($project->project->slug == $_SESSION['exam'])
 		{
 			$slug = $project->project->slug;
 			$state = $project->status;
@@ -234,10 +258,10 @@ function update_user($user)
 	if ($state == "finished")
 	{
 		$refresh = 0;
-		$item = array($grade, $apicall->login, $apicall->image_url, $_SESSION['jsonrefresh'], $user[4], $refresh, $finishedat, $user[7], $user[8]);
+		$item = array($grade, $apicall->login, $apicall->image->link, $_SESSION['jsonrefresh'], $user[4], $refresh, $finishedat, $user[7], $user[8]);
 	}
 	else
-		$item = array($grade, $apicall->login, $apicall->image_url, $_SESSION['jsonrefresh'], $user[4], $refresh, $finishedat, $user[7], $user[8]);
+		$item = array($grade, $apicall->login, $apicall->image->link, $_SESSION['jsonrefresh'], $user[4], $refresh, $finishedat, $user[7], $user[8]);
 	usleep(400000);
 	return ($item);
 }
@@ -264,10 +288,11 @@ function count_maxweight($jsonarray, $weight)
 	return ($count);
 }
 
-function get_users($poolmonth)
+function get_users($exam)
 {
 	$page = 1;
-	$apicall = api_req("/v2/projects/1304/users/?filter[primary_campus_id]=31&per_page=100&range={$poolmonth},{$poolmonth}&page={$page}");
+	$uri = "/v2/projects/{$exam}/users?filter[primary_campus_id]=31&filter[pool_month]={$_SESSION['month']}&filter[pool_year]={$_SESSION['year']}&per_page=100&page={$page}";
+	$apicall = api_req($uri);
 	$mustrecount = 0;
 	if (!count($apicall))
 		return (0);
@@ -281,7 +306,7 @@ function get_users($poolmonth)
 	while ($mustrecount)
 	{
 		$page = $page + 1;
-		$apicall = api_req("/v2/projects/1304/users/?filter[primary_campus_id]=31&per_page=100&range={$poolmonth},{$poolmonth}&page={$page}");
+		$apicall = api_req("/v2/projects/{$exam}/users/?filter[primary_campus_id]=31&filter[pool_month]={$_SESSION['month']}&filter[pool_year]={$_SESSION['year']}&per_page=100&page={$page}");
 		if (!count($apicall))
 			break ;
 		if (count($apicall) < 100)
@@ -297,6 +322,7 @@ function output_json($userinfo)
 {
 	header('Content-Type:application/json');
 	header('Access-Control-Allow-Origin:*');
+	header('X-Next-Request-In: 60');
 	echo(json_encode($userinfo));
 	exit();
 }

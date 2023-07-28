@@ -34,6 +34,7 @@ select {
   background-color: slategrey;
   border: transparent;
   border-radius: 20px;
+  font-size: inherit;
 }
 
 
@@ -47,6 +48,16 @@ select {
   animation: color_change 1s infinite alternate;
   border-radius: 20px;
   border: transparent;
+  font-size: inherit;
+}
+
+#letsgo:disabled {
+  text-align: center;
+  padding: 10px;
+  border-radius: 20px;
+  border: transparent;
+  background-color: #686ef9;
+  animation: none;
 }
 
 #stop {
@@ -54,7 +65,8 @@ select {
 	padding: 10px;
 	border-radius: 20px;
 	border: transparent;
-	background-color: #686ef9;
+	background-color: #e85555;
+	font-size: inherit;
 }
 
 @keyframes color_change {

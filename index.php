@@ -1,6 +1,9 @@
 <?php
 session_start();
 include_once("config.php");
+
+if (!isset($_SESSION['token']))
+	header('Location: /token.php');
 ?>
 
 <!DOCTYPE html>
@@ -32,8 +35,9 @@ include_once("config.php");
 					<option value="c-piscine-exam-02">Exam 02</option>
 					<option value="c-piscine-final-exam">Exam Final</option>
 				</select>
-				<button id="letsgo" onclick="letsgooooo()">Let's goooooooo</button>
-				<button id="stop" onclick="letsnotgooooo()" disabled>Let's not go :(</button>
+				<button id="letsgo" onclick="main()">Let's goooooooo</button>
+				<button id="stop" onclick="letsnotgooooo()" disabled style="display: none">Let's not go :(</button>
+				<p id="notice" disabled></p>
 			</div>
 			<table id="rankings" class="leaderboard-results" width="100%">
 				<thead>

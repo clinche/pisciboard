@@ -5,3 +5,7 @@ services:
     build: .
     ports:
       - 127.0.0.1:8080:8080
+    volumes:
+      - type: bind
+        source: ./
+        target: /var/www/html

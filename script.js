@@ -4,17 +4,14 @@ const year = document.getElementById("year-select");
 const exam = document.getElementById("exam-select");
 const letsgo = document.getElementById("letsgo");
 const stop = document.getElementById("stop");
+const notice = document.getElementById("notice");
 
-let running = false;
+let interval;
 
-const sleep = (delay) => new Promise((resolve) => { 
-	while (running && delay > 0) {
-		setTimeout(resolve, 200); 
-		delay -= 200;
-	}
-});
+const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 
 function populateRankings (data) {
+	rankingsBody.innerHTML = "";
 	// Populate Leaderboard
 	let count = 1;
 	data.forEach((row) => {
@@ -107,28 +104,52 @@ function toggleSelects(state){
 
 async function letsgooooo(){
 	toggleSelects(false);
-	running = true;
 
-	const request = new XMLHttpRequest();
+	notice.innerHTML = "Refreshing...";
+	notice.style = "color:orange;";
+	
+	const response = await makeRequest("GET", "/json.php?json&month="+month.value+"&year="+year.value+"&exam="+exam.value);
+	const json = JSON.parse(response.responseText);
+	populateRankings(json);
 
-	request.open("get",	"/json.php?json&month="+month.value+"&year="+year.value+"&exam="+exam.value);
-	request.onload = () => {
-		const json = JSON.parse(request.responseText);
-		rankingsBody.innerHTML = "";
-		populateRankings(json);
-	}
-
-	while (running) {
-		//request.send();
-		//nexttime = request.getResponseHeader("X-Next-Request-In")
-		//await sleep(nexttime * 1000);
-		await sleep(10000);
-	}
-
-	request.abort();
-	toggleSelects(true);
+	notice.innerHTML = "Refreshed!";
+	notice.style = "color:green;";
+	stop.style = "";
 }
 
 async function letsnotgooooo(){
-	running = false;
+	clearInterval(interval);
+	toggleSelects(true);
+	notice.innerHTML = "Stopped.";
+	notice.style = "color:red;"
+	stop.style = "display:none;"
+}
+
+function makeRequest(method, url) {
+    return new Promise(function (resolve, reject) {
+        let xhr = new XMLHttpRequest();
+        xhr.open(method, url);
+        xhr.onload = function () {
+            if (this.status >= 200 && this.status < 300) {
+                resolve(xhr);
+            } else {
+                reject({
+                    status: this.status,
+                    statusText: xhr.statusText
+                });
+            }
+        };
+        xhr.onerror = function () {
+            reject({
+                status: this.status,
+                statusText: xhr.statusText
+            });
+        };
+        xhr.send();
+    });
+}
+
+async function main(){
+	while (1)
+		await letsgooooo();
 }

@@ -17,20 +17,18 @@
 		curl_setopt($curl, CURLOPT_URL, $url);
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 		$headers = array(
-		   "Authorization: Bearer ".$_SESSION['currtoken']
+		   "Authorization: Bearer ".$_SESSION['token']
 		);
 		curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
 		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
 		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
 		$resp = curl_exec($curl);
-		if (curl_getinfo($curl, CURLINFO_HTTP_CODE) != 200)
-		{
-			error_log("config.php:26 failed api_req to url {$url_api} with token index {$_SESSION['currtokennb']}");
-			error_log("config.php:26 got !=200 http response. entering choose_token function");
-			choose_token();
-			usleep(300000);
-			return (api_req($url_api));
-		}
+	//	if (curl_getinfo($curl, CURLINFO_HTTP_CODE) != 200)
+	//	{
+	//		choose_token();
+	//		usleep(300000);
+	//		return (api_req($url_api));
+	//	}
 		curl_close($curl);
 		$data = json_decode($resp);
 		return ($data);
@@ -58,7 +56,7 @@
 			curl_close($curl);
 			$data = json_decode($resp);
 			
-			if (isset($data->login) && ($data->login == 'ldournoi' || $data->login == 'johrober'))
+			if (isset($data->login))
 			{
 				error_log("config.php:59 choose_token(): found a valid token. index: {$currtoken}");
 				$_SESSION['currtokennb'] = $currtoken;
@@ -85,7 +83,7 @@
 
 	function renew_tokens()
 	{
-		header('Location:/exams/token1.php?refresh');
+		header('Location:/token.php?refresh');
 		exit();
 	}
 
