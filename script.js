@@ -7,6 +7,7 @@ const stop = document.getElementById("stop");
 const notice = document.getElementById("notice");
 
 let interval;
+let running = false;
 
 const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 
@@ -107,7 +108,7 @@ async function letsgooooo(){
 
 	notice.innerHTML = "Refreshing...";
 	notice.style = "color:orange;";
-	
+
 	const response = await makeRequest("GET", "/json.php?json&month="+month.value+"&year="+year.value+"&exam="+exam.value);
 	const json = JSON.parse(response.responseText);
 	populateRankings(json);
@@ -118,6 +119,7 @@ async function letsgooooo(){
 }
 
 async function letsnotgooooo(){
+	running = false;
 	clearInterval(interval);
 	toggleSelects(true);
 	notice.innerHTML = "Stopped.";
@@ -126,30 +128,43 @@ async function letsnotgooooo(){
 }
 
 function makeRequest(method, url) {
-    return new Promise(function (resolve, reject) {
-        let xhr = new XMLHttpRequest();
-        xhr.open(method, url);
-        xhr.onload = function () {
-            if (this.status >= 200 && this.status < 300) {
-                resolve(xhr);
-            } else {
-                reject({
-                    status: this.status,
-                    statusText: xhr.statusText
-                });
-            }
-        };
-        xhr.onerror = function () {
-            reject({
-                status: this.status,
-                statusText: xhr.statusText
-            });
-        };
-        xhr.send();
-    });
+	return new Promise(function (resolve, reject) {
+		let xhr = new XMLHttpRequest();
+		xhr.open(method, url);
+		xhr.onload = function () {
+			if (this.status >= 200 && this.status < 300) {
+				resolve(xhr);
+			} else {
+				reject({
+					status: this.status,
+					statusText: xhr.statusText
+				});
+			}
+		};
+		xhr.onerror = function () {
+			reject({
+				status: this.status,
+				statusText: xhr.statusText
+			});
+		};
+		xhr.send();
+	});
 }
 
 async function main(){
-	while (1)
+	running = true;
+	while (running)
+	{
+		stop.style = "display:none;"
 		await letsgooooo();
+		stop.style = "";
+		await sleep(5000);
+		delay = 15000;
+		while (running && delay > 0)
+		{
+			notice.innerHTML = "Refreshing in "+delay/1000+" seconds...";
+			await sleep(1000);
+			delay -= 1000;
+		}
+	}
 }
