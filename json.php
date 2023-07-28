@@ -36,12 +36,45 @@ if (isset($_GET['json'])
 	}
 	else
 	{
-		$userinfo = update_weighted_users();
+		//$userinfo = update_weighted_users();
+		$userinfo = update_project();
 		$_SESSION['usersjson'] = $userinfo;
 	}
 	$_SESSION['jsonrefresh'] += 1;
 	output_json($_SESSION['usersjson']);
 	//view_data($apicall);
+}
+
+function update_project()
+{
+	$jsonarray = $_SESSION['usersjson'];
+	$finalarray = [];
+	$url = "/v2/projects_users?filter[project_id]=".get_exam_id()."&per_page=100&filter[user_id]=";
+	foreach ($jsonarray as $user)
+	{
+		$url .= $user['id'].",";
+	}
+	$url = substr($url, 0, -1);
+	$apicall = api_req($url);
+	foreach ($apicall as $user)
+	{
+		$state = $user->status;
+		$grade = $user->final_mark;
+		$markedat = $user->marked_at;
+		$refresh = 1;
+		$finishedat = date("H:i:s", strtotime($markedat) + 7200);
+		if ($grade == null)
+			$grade = 0;
+		if ($state == "finished")
+		{
+			$refresh = 0;
+			$item = array($grade, $apicall->login, $apicall->image->link, $_SESSION['jsonrefresh'], $user[4], $refresh, $finishedat, $user[7], $user[8]);
+		}
+		else
+			$item = array($grade, $apicall->login, $apicall->image->link, $_SESSION['jsonrefresh'], $user[4], $refresh, $finishedat, $user[7], $user[8]);
+		array_push($finalarray, $item);
+	}
+	return ($finalarray);
 }
 
 function get_exam_id()

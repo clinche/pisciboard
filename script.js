@@ -8,6 +8,7 @@ const notice = document.getElementById("notice");
 
 let interval;
 let running = false;
+let first = true;
 
 const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 
@@ -106,7 +107,13 @@ function toggleSelects(state){
 async function letsgooooo(){
 	toggleSelects(false);
 
-	notice.innerHTML = "Refreshing...";
+	if (first)
+	{
+		first = false;
+		notice.innerHTML = "Refreshing... First refresh might take a minute.";
+	}
+	else
+		notice.innerHTML = "Refreshing...";
 	notice.style = "color:orange;";
 
 	const response = await makeRequest("GET", "/json.php?json&month="+month.value+"&year="+year.value+"&exam="+exam.value);
@@ -153,13 +160,14 @@ function makeRequest(method, url) {
 
 async function main(){
 	running = true;
+	first = true;
 	while (running)
 	{
 		stop.style = "display:none;"
 		await letsgooooo();
 		stop.style = "";
-		await sleep(5000);
-		delay = 15000;
+		await sleep(3000);
+		delay = 10000;
 		while (running && delay > 0)
 		{
 			notice.innerHTML = "Refreshing in "+delay/1000+" seconds...";
