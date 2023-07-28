@@ -14,6 +14,12 @@ const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 
 function populateRankings (data) {
 	rankingsBody.innerHTML = "";
+	if (data.status || data.length == 0)
+	{
+		notice.innerHTML = "Error";
+		notice.style = "color:red;";
+		return;
+	}
 	// Populate Leaderboard
 	let count = 1;
 	data.forEach((row) => {
@@ -119,10 +125,6 @@ async function letsgooooo(){
 	const response = await makeRequest("GET", "/json.php?json&month="+month.value+"&year="+year.value+"&exam="+exam.value);
 	const json = JSON.parse(response.responseText);
 	populateRankings(json);
-
-	notice.innerHTML = "Refreshed!";
-	notice.style = "color:green;";
-	stop.style = "";
 }
 
 async function letsnotgooooo(){
@@ -164,8 +166,20 @@ async function main(){
 	while (running)
 	{
 		stop.style = "display:none;"
+		
 		await letsgooooo();
+
+		if (notice.style.color == "red")
+		{
+			running = false;
+			toggleSelects(true);
+			break;
+		}
+
+		notice.innerHTML = "Refreshed!";
+		notice.style = "color:green;";
 		stop.style = "";
+		
 		await sleep(3000);
 		delay = 10000;
 		while (running && delay > 0)

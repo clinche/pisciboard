@@ -49,12 +49,12 @@ function update_project()
 {
 	$jsonarray = $_SESSION['usersjson'];
 	$finalarray = [];
+	$i = 0;
 	$url = "/v2/projects_users?filter[project_id]=".get_exam_id()."&per_page=100&filter[user_id]=";
 	foreach ($jsonarray as $user)
 	{
-		$url .= $user['id'].",";
+		$url .= $user[9].",";
 	}
-	$url = substr($url, 0, -1);
 	$apicall = api_req($url);
 	foreach ($apicall as $user)
 	{
@@ -66,15 +66,23 @@ function update_project()
 		if ($grade == null)
 			$grade = 0;
 		if ($state == "finished")
-		{
 			$refresh = 0;
-			$item = array($grade, $apicall->login, $apicall->image->link, $_SESSION['jsonrefresh'], $user[4], $refresh, $finishedat, $user[7], $user[8]);
-		}
-		else
-			$item = array($grade, $apicall->login, $apicall->image->link, $_SESSION['jsonrefresh'], $user[4], $refresh, $finishedat, $user[7], $user[8]);
+		$userinfo = get_user_info($user->user->id);
+		$item = array($grade, $userinfo[1], $userinfo[2], $_SESSION['jsonrefresh'], $userinfo[4], $refresh, $finishedat, $userinfo[7], $userinfo[8], $userinfo[9]);
 		array_push($finalarray, $item);
+		$i++;
 	}
+	usort($finalarray, 'customsort');
 	return ($finalarray);
+}
+
+function get_user_info($id)
+{
+	foreach ($_SESSION['usersjson'] as $user)
+	{
+		if ($user[9] == $id)
+			return ($user);
+	}
 }
 
 function get_exam_id()
@@ -93,11 +101,13 @@ function first_update()
 {
 	$userinfo = [];
 	$lastc = 0;
+	$userid = 0;
 	$validated = "validated?";
 	foreach ($_SESSION['examusers'] as $user)
 	{
 		$lastc = 0;
 		$apicall = api_req("/v2/users/".$user);
+		$userid = $apicall->id;
 		foreach ($apicall->projects_users as $project)
 		{
 			if ($project->project->slug == "c-piscine-c-01" && $project->marked != false && $project->$validated == true && $lastc < 1)
@@ -159,7 +169,7 @@ function first_update()
 			$grade = 0;
 		$oldresults = array($lastc, $exam00, $exam01, $exam02);
 		$cote = determine_cote($oldresults);
-		$item = array($grade, $apicall->login, $apicall->image->link, $_SESSION['jsonrefresh'], 100, 1, 9, $cote, $oldresults);
+		$item = array($grade, $apicall->login, $apicall->image->link, $_SESSION['jsonrefresh'], 100, 1, 9, $cote, $oldresults, $userid);
 		array_push($userinfo, $item);
 		usleep(400000);
 	}
