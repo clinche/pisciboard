@@ -150,7 +150,7 @@ function update_weighted_users()
 	$jsonarray = $_SESSION['usersjson'];
 	$maxgrade = extract_maxgrade();
 	$mingrade = extract_mingrade();
-	$reqlimit = 40;
+	$reqlimit = count($jsonarray) / 2;
 	$reqnb = 0;
 	$lastrefresh = $_SESSION['jsonrefresh'];
 	error_log("json.php:115 calculating weight for every user");
