@@ -5,7 +5,7 @@
 
 	if (!isset($_GET['code']) && !isset($_GET['refresh']))
 	{
-		header("Location:https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-e649edccc324538cb1124f15de8a73eddf712387a35ebdccb0fb7ee9f79b2dfe&redirect_uri={$after_auth}&response_type=code");
+		header("Location:https://api.intra.42.fr/oauth/authorize?client_id={$uid}&redirect_uri={$after_auth}&response_type=code");
 		exit();
 	}
 	if (isset($_GET['refresh']))
