@@ -67,7 +67,7 @@
 			$token = $data->access_token;
 			$second_token = $data->refresh_token;
 			$_SESSION['token'] = $token;
-			$_SESSION['currtokennb'] = 0;
+			$_SESSION['refreshtok'] = $second_token;
 			$_SESSION['currreq'] = 0;
 			header('Location: /index.php');
 		}

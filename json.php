@@ -36,7 +36,6 @@ if (isset($_GET['json'])
 	}
 	else
 	{
-		//$userinfo = update_weighted_users();
 		$userinfo = update_project();
 		$_SESSION['usersjson'] = $userinfo;
 	}
@@ -45,56 +44,34 @@ if (isset($_GET['json'])
 	//view_data($apicall);
 }
 
-function update_project()
+function get_users($exam)
 {
-	$jsonarray = $_SESSION['usersjson'];
-	$finalarray = [];
-	$i = 0;
-	$url = "/v2/projects_users?filter[project_id]=".get_exam_id()."&per_page=100&filter[user_id]=";
-	foreach ($jsonarray as $user)
+	$page = 1;
+	$uri = "/v2/projects/{$exam}/users?filter[primary_campus_id]=31&filter[pool_month]={$_SESSION['month']}&filter[pool_year]={$_SESSION['year']}&per_page=100&page={$page}";
+	$apicall = api_req($uri);
+	$mustrecount = 0;
+	if (!count($apicall))
+		return (0);
+	if (count($apicall) == 100)
+		$mustrecount = 1;
+	$examusers = [];
+	foreach ($apicall as $item)
 	{
-		$url .= $user[9].",";
+		array_push($examusers, $item->id);
 	}
-	$apicall = api_req($url);
-	foreach ($apicall as $user)
+	while ($mustrecount)
 	{
-		$state = $user->status;
-		$grade = $user->final_mark;
-		$markedat = $user->marked_at;
-		$refresh = 1;
-		$finishedat = date("H:i:s", strtotime($markedat) + 7200);
-		if ($grade == null)
-			$grade = 0;
-		if ($state == "finished")
-			$refresh = 0;
-		$userinfo = get_user_info($user->user->id);
-		$item = array($grade, $userinfo[1], $userinfo[2], $_SESSION['jsonrefresh'], $userinfo[4], $refresh, $finishedat, $userinfo[7], $userinfo[8], $userinfo[9]);
-		array_push($finalarray, $item);
-		$i++;
-	}
-	usort($finalarray, 'customsort');
-	return ($finalarray);
-}
+		$page = $page + 1;
+		$apicall = api_req("/v2/projects/{$exam}/users/?filter[primary_campus_id]=31&filter[pool_month]={$_SESSION['month']}&filter[pool_year]={$_SESSION['year']}&per_page=100&page={$page}");
+		if (!count($apicall))
+			break ;
+		if (count($apicall) < 100)
+			$mustrecount = 0;
 
-function get_user_info($id)
-{
-	foreach ($_SESSION['usersjson'] as $user)
-	{
-		if ($user[9] == $id)
-			return ($user);
 	}
-}
-
-function get_exam_id()
-{
-	$examid = 0;
-	$apicall = api_req("/v2/me");
-	foreach ($apicall->projects_users as $project)
-	{
-		if ($project->project->slug == $_SESSION['exam'])
-			$examid = $project->project->id;
-	}
-	return ($examid);
+	$_SESSION['jsonrefresh'] = 0;
+	$examusers = array_unique($examusers);
+	$_SESSION['examusers'] = $examusers;
 }
 
 function first_update()
@@ -178,6 +155,58 @@ function first_update()
 	return ($userinfo);
 }
 
+function update_project()
+{
+	$jsonarray = $_SESSION['usersjson'];
+	$finalarray = [];
+	$i = 0;
+	$url = "/v2/projects_users?filter[project_id]=".get_exam_id()."&per_page=100&filter[user_id]=";
+	foreach ($jsonarray as $user)
+	{
+		$url .= $user[9].",";
+	}
+	$apicall = api_req($url);
+	foreach ($apicall as $user)
+	{
+		$state = $user->status;
+		$grade = $user->final_mark;
+		$markedat = $user->marked_at;
+		$refresh = 1;
+		$finishedat = date("H:i:s", strtotime($markedat) + 7200);
+		if ($grade == null)
+			$grade = 0;
+		if ($state == "finished")
+			$refresh = 0;
+		$userinfo = get_user_info($user->user->id);
+		$item = array($grade, $userinfo[1], $userinfo[2], $_SESSION['jsonrefresh'], $userinfo[4], $refresh, $finishedat, $userinfo[7], $userinfo[8], $userinfo[9]);
+		array_push($finalarray, $item);
+		$i++;
+	}
+	usort($finalarray, 'customsort');
+	return ($finalarray);
+}
+
+function get_user_info($id)
+{
+	foreach ($_SESSION['usersjson'] as $user)
+	{
+		if ($user[9] == $id)
+			return ($user);
+	}
+}
+
+function get_exam_id()
+{
+	$examid = 0;
+	$apicall = api_req("/v2/me");
+	foreach ($apicall->projects_users as $project)
+	{
+		if ($project->project->slug == $_SESSION['exam'])
+			$examid = $project->project->id;
+	}
+	return ($examid);
+}
+
 function determine_cote($oldresults)
 {
 	$x = 5;
@@ -186,58 +215,6 @@ function determine_cote($oldresults)
 	$oldresults[2] > 32 ? $x -= 1 : $x = $x;
 	$oldresults[3] > 32 ? $x -= 1 : $x = $x;
 	return ($x . "/1");
-}
-
-function update_weighted_users()
-{
-	$jsonarray = $_SESSION['usersjson'];
-	$maxgrade = extract_maxgrade();
-	$mingrade = extract_mingrade();
-	$reqlimit = count($jsonarray) / 2;
-	$reqnb = 0;
-	$lastrefresh = $_SESSION['jsonrefresh'];
-	error_log("json.php:115 calculating weight for every user");
-	foreach ($jsonarray as &$jsonuser)
-	{
-		$lastuserrefresh = $jsonuser[3];
-		if ($maxgrade == $mingrade)
-			$weight = 100;
-		else
-		{
-			$step1 = (($jsonuser[0] - $mingrade) * 100) / ($maxgrade - $mingrade);
-			$weight = 100 + ($step1 / ($lastrefresh - $lastuserrefresh));
-		}
-		$jsonuser[4] = $weight;
-	}
-	$maxweight = extract_maxweight($jsonarray);
-	shuffle($jsonarray);
-	error_log("json.php:131 doing users update. should update 40 times.");
-	foreach ($jsonarray as &$user)
-	{
-		if ($user[3] < $_SESSION['jsonrefresh'] - 4 && $user[5] != 0)
-		{
-			$user = update_user($user);
-			$reqnb++;
-		}
-		if ($user[4] == $maxweight && $user[3] != $_SESSION['jsonrefresh'] - 1 && $user[5] != 0)
-		{
-			$user = update_user($user);
-			$reqnb++;
-		}
-		if ($user[4] < $maxweight - 10 && $user[3] != $_SESSION['jsonrefresh'] - 1 && $user[5] != 0)
-		{
-			$user = update_user($user);
-			$reqnb++;
-		}
-		if ($reqnb == $reqlimit)
-			break ;
-	}
-	error_log("json.php:151 update done. total requests: {$reqnb}");
-	error_log("json.php:152 sorting the jsonarray");
-	usort($jsonarray, 'customsort');
-	error_log("json.php:155 sort done. \n\t\t\t\t\tfirst user grade: {$jsonarray[0][0]}\n\t\t\t\t\tlast user grade {$jsonarray[count($jsonarray) - 1][0]}");
-	error_log("json.php:155 outputing json array\n\n");
-	return ($jsonarray);
 }
 
 function customsort($user1, $user2)
@@ -258,114 +235,10 @@ function customsort($user1, $user2)
 	}
 }
 
-function extract_maxgrade()
-{
-	$fstuser = $_SESSION['usersjson'][0];
-	$maxgrade = $fstuser[0];
-	return ($maxgrade);
-}
-
-function extract_mingrade()
-{
-	$nbuser = count($_SESSION['usersjson']);
-	$lstuser = $_SESSION['usersjson'][$nbuser - 1];
-	$mingrade = $lstuser[0];
-	return ($mingrade);
-}
-
-function update_user($user)
-{
-	$finishedat = 0;
-	$slug = 0;
-	$state = 0;
-	$grade = 0;
-	$markedat = 0;
-	$refresh = 0;
-
-	$apicall = api_req("/v2/users/".$user[1]);
-	foreach ($apicall->projects_users as $project)
-	{
-		if ($project->project->slug == $_SESSION['exam'])
-		{
-			$slug = $project->project->slug;
-			$state = $project->status;
-			$grade = $project->final_mark;
-			$markedat = $project->marked_at;
-			$refresh = 1;
-			break;
-		}
-	}
-	$finishedat = date("H:i:s", strtotime($markedat) + 7200);
-	if ($grade == null)
-		$grade = 0;
-	if ($state == "finished")
-	{
-		$refresh = 0;
-		$item = array($grade, $apicall->login, $apicall->image->link, $_SESSION['jsonrefresh'], $user[4], $refresh, $finishedat, $user[7], $user[8]);
-	}
-	else
-		$item = array($grade, $apicall->login, $apicall->image->link, $_SESSION['jsonrefresh'], $user[4], $refresh, $finishedat, $user[7], $user[8]);
-	usleep(400000);
-	return ($item);
-}
-
-function extract_maxweight($jsonarray)
-{
-	$weight = 0;
-	foreach ($jsonarray as $user)
-	{
-		if ($user[4] > $weight && $user[3] != $_SESSION['jsonrefresh'])
-			$weight = $user[4];
-	}
-	return ($weight);
-}
-
-function count_maxweight($jsonarray, $weight)
-{
-	$count = 0;
-	foreach ($jsonarray as $user)
-	{
-		if ($user[4] == $weight && $user[3] != $_SESSION['jsonrefresh'])
-			$count++;
-	}
-	return ($count);
-}
-
-function get_users($exam)
-{
-	$page = 1;
-	$uri = "/v2/projects/{$exam}/users?filter[primary_campus_id]=31&filter[pool_month]={$_SESSION['month']}&filter[pool_year]={$_SESSION['year']}&per_page=100&page={$page}";
-	$apicall = api_req($uri);
-	$mustrecount = 0;
-	if (!count($apicall))
-		return (0);
-	if (count($apicall) == 100)
-		$mustrecount = 1;
-	$examusers = [];
-	foreach ($apicall as $item)
-	{
-		array_push($examusers, $item->id);
-	}
-	while ($mustrecount)
-	{
-		$page = $page + 1;
-		$apicall = api_req("/v2/projects/{$exam}/users/?filter[primary_campus_id]=31&filter[pool_month]={$_SESSION['month']}&filter[pool_year]={$_SESSION['year']}&per_page=100&page={$page}");
-		if (!count($apicall))
-			break ;
-		if (count($apicall) < 100)
-			$mustrecount = 0;
-
-	}
-	$_SESSION['jsonrefresh'] = 0;
-	$examusers = array_unique($examusers);
-	$_SESSION['examusers'] = $examusers;
-}
-
 function output_json($userinfo)
 {
 	header('Content-Type:application/json');
 	header('Access-Control-Allow-Origin:*');
-	header('X-Next-Request-In: 60');
 	echo(json_encode($userinfo));
 	exit();
 }
