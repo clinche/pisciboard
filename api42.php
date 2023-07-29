@@ -1,4 +1,15 @@
 <?php
+
+function logger($msg)
+{
+	$fileinfo = 'nofileinfo';
+	$backtrace = debug_backtrace();
+	if (!empty($backtrace[0]) && is_array($backtrace[0]))
+		$fileinfo = $backtrace[0]['file'] . ':' . $backtrace[0]['line'];
+	error_log('['.$fileinfo.']' . ' - ' . $msg);
+}
+
+
 function api_req($url_api)
 {
 	if (!isset($_SESSION['token']))
@@ -22,11 +33,14 @@ function api_req($url_api)
 	curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
 	curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
 
+	logger("API call: $url_api");
+
 	$resp = curl_exec($curl);
 
 	if (curl_getinfo($curl, CURLINFO_HTTP_CODE) != 200)
 	{
 		$_SESSION['error'] = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+		logger("API call error: " . curl_getinfo($curl, CURLINFO_HTTP_CODE));
 		header('Location: /token.php?refresh');
 		exit();
 	}
@@ -103,6 +117,19 @@ function refresh_tokens()
 	}
 	$_SESSION['token'] = $token;
 	$_SESSION['refreshtok'] = $second_token;
+}
+
+function get_campuses()
+{
+	$data = api_req("/v2/campus?per_page=100");
+	$campuses = [];
+	foreach ($data as $campus)
+	{
+		array_push($campuses, ['name' => $campus->name,
+							   'id' => $campus->id]);
+	}
+	sort($campuses);
+	return ($campuses);
 }
 
 ?>

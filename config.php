@@ -10,7 +10,7 @@ function view_data($data)
 
 function get_user_info($id)
 {
-	foreach ($_SESSION['usersjson'] as $user)
+	foreach ($_SESSION['examusers'] as $user)
 	{
 		if ($user[9] == $id)
 			return ($user);

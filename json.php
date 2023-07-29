@@ -7,21 +7,25 @@ set_time_limit(0);
 if (isset($_GET['json']) 
 	&& isset($_GET['year']) 
 	&& isset($_GET['month']) 
-	&& isset($_GET['exam']))
+	&& isset($_GET['exam'])
+	&& isset($_GET['campus']))
 {
 	if (!isset($_SESSION['year']))
 	{
 		$_SESSION['year'] = $_GET['year'];
 		$_SESSION['month'] = $_GET['month'];
 		$_SESSION['exam'] = $_GET['exam'];
+		$_SESSION['campus'] = $_GET['campus'];
 	}
 	else if ($_SESSION['year'] != $_GET['year'] 
 		|| $_SESSION['month'] != $_GET['month'] 
+		|| $_SESSION['campus'] != $_GET['campus']
 		|| $_SESSION['exam'] != $_GET['exam'])
 	{
 		$_SESSION['year'] = $_GET['year'];
 		$_SESSION['month'] = $_GET['month'];
 		$_SESSION['exam'] = $_GET['exam'];
+		$_SESSION['campus'] = $_GET['campus'];
 		$_SESSION['examusers'] = null;
 		$_SESSION['usersjson'] = null;
 		$_SESSION['jsonrefresh'] = 0;
@@ -30,14 +34,20 @@ if (isset($_GET['json'])
 	{
 		$examid = get_exam_id();
 		if (!$examid)
-			output_json("Error: Exam not found");
-		get_users($examid);
-		$userinfo = first_update();
+			output_error("Error: Exam not found");
+		$_SESSION['jsonrefresh'] = 0;
+		$_SESSION['examusers'] = get_users($examid);
+		$_SESSION['usersjson'] = null;
+		output_json($_SESSION['examusers']);
+	}
+	else if (!isset($_SESSION['usersjson']))
+	{
+		$userinfo = update_project();
 		$_SESSION['usersjson'] = $userinfo;
 	}
 	else
 	{
-		$userinfo = update_project();
+		$userinfo = update_userinfos();
 		$_SESSION['usersjson'] = $userinfo;
 	}
 	$_SESSION['jsonrefresh'] += 1;
@@ -48,31 +58,35 @@ if (isset($_GET['json'])
 function get_users($exam)
 {
 	$page = 1;
-	$uri = "/v2/projects/{$exam}/users?filter[primary_campus_id]=31&filter[pool_month]={$_SESSION['month']}&filter[pool_year]={$_SESSION['year']}&per_page=100&page={$page}";
+	$uri = "/v2/projects/{$exam}/users?filter[primary_campus_id]={$_SESSION['campus']}&filter[pool_month]={$_SESSION['month']}&filter[pool_year]={$_SESSION['year']}&per_page=100&page={$page}";
 	$apicall = api_req($uri);
 	$mustrecount = 0;
-	if (!count($apicall))
-		return (0);
 	if (count($apicall) == 100)
 		$mustrecount = 1;
 	$examusers = [];
 	foreach ($apicall as $item)
 	{
-		array_push($examusers, $item->id);
+		$row = [0, $item->login, $item->image->link, $_SESSION['jsonrefresh'], 100, 1, 9, "", [], $item->id];
+		logger("Adding user {$item->login} to the list");
+		array_push($examusers, $row);
 	}
 	while ($mustrecount)
 	{
 		$page = $page + 1;
-		$apicall = api_req("/v2/projects/{$exam}/users/?filter[primary_campus_id]=31&filter[pool_month]={$_SESSION['month']}&filter[pool_year]={$_SESSION['year']}&per_page=100&page={$page}");
+		$apicall = api_req("/v2/projects/{$exam}/users/?filter[primary_campus_id]={$_SESSION['campus']}&filter[pool_month]={$_SESSION['month']}&filter[pool_year]={$_SESSION['year']}&per_page=100&page={$page}");
 		if (!count($apicall))
 			break ;
 		if (count($apicall) < 100)
 			$mustrecount = 0;
-
+		foreach ($apicall as $item)
+		{
+			$row = [0, $item->login, $item->image->link, $_SESSION['jsonrefresh'], 100, 1, 9, "", [], $item->id];
+			logger("Adding user {$item->login} to the list");
+			array_push($examusers, $row);
+		}
 	}
-	$_SESSION['jsonrefresh'] = 0;
-	$examusers = array_unique($examusers);
-	$_SESSION['examusers'] = $examusers;
+	//$examusers = array_unique($examusers);
+	return ($examusers);
 }
 
 function populate_slugs($base, $max)
@@ -92,7 +106,7 @@ function populate_slugs($base, $max)
 	return ($slugs);
 }
 
-function first_update()
+function update_userinfos()
 {
 	$userinfo = [];
 	$cslugs = populate_slugs("c-piscine-c-", 13);
@@ -103,8 +117,10 @@ function first_update()
 	$validated = "validated?";
 	foreach ($_SESSION['examusers'] as $user)
 	{
+		if ($user[0])
+			continue ;
 		$lastc = 0;
-		$apicall = api_req("/v2/users/".$user);
+		$apicall = api_req("/v2/users/".$user[9]);
 		$userid = $apicall->id;
 		foreach ($apicall->projects_users as $project)
 		{
@@ -131,14 +147,18 @@ function first_update()
 
 function update_project()
 {
-	$jsonarray = $_SESSION['usersjson'];
+	$examarray = $_SESSION['examusers'];
+	$tmparray = $examarray;
 	$finalarray = [];
-	$i = 0;
+	refetch:
+	$i = 1;
 	$url = "/v2/projects_users?filter[project_id]=".get_exam_id()."&per_page=100&filter[user_id]=";
-	foreach ($jsonarray as $user)
+	while ($i % 100 && count($tmparray))
 	{
-		$url .= $user[9].",";
+		$url .= array_pop($tmparray)[9].",";
+		$i++;
 	}
+	$url = substr($url, 0, -1);
 	$apicall = api_req($url);
 	foreach ($apicall as $user)
 	{
@@ -154,8 +174,9 @@ function update_project()
 		$userinfo = get_user_info($user->user->id);
 		$item = array($grade, $userinfo[1], $userinfo[2], $_SESSION['jsonrefresh'], $userinfo[4], $refresh, $finishedat, $userinfo[7], $userinfo[8], $userinfo[9]);
 		array_push($finalarray, $item);
-		$i++;
 	}
+	if (count($apicall) >= 99)
+		goto refetch;
 	usort($finalarray, 'customsort');
 	return ($finalarray);
 }
@@ -187,6 +208,15 @@ function customsort($user1, $user2)
 			return (strcmp($user1[1], $user2[1]));
 		return (0);
 	}
+}
+
+function output_error($error)
+{
+	http_response_code(400);
+	header('Content-Type:application/json');
+	header('Access-Control-Allow-Origin:*');
+	echo(json_encode($error));
+	exit();
 }
 
 function output_json($userinfo)

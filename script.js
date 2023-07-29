@@ -2,6 +2,7 @@ const rankingsBody = document.querySelector("#rankings > tbody");
 const month = document.getElementById("month-select");
 const year = document.getElementById("year-select");
 const exam = document.getElementById("exam-select");
+const campus = document.getElementById("campus-select");
 const letsgo = document.getElementById("letsgo");
 const stop = document.getElementById("stop");
 const notice = document.getElementById("notice");
@@ -116,13 +117,13 @@ async function letsgooooo(){
 	if (first)
 	{
 		first = false;
-		notice.innerHTML = "Refreshing... First refresh might take a minute.";
+		notice.innerHTML = "Getting users...";
 	}
 	else
-		notice.innerHTML = "Refreshing...";
+		notice.innerHTML = "Refreshing users infos... Grades are prioritized but undefineds will go away.";
 	notice.style = "color:orange;";
 
-	const response = await makeRequest("GET", "/json.php?json&month="+month.value+"&year="+year.value+"&exam="+exam.value)
+	const response = await makeRequest("GET", "/json.php?json&month="+month.value+"&year="+year.value+"&exam="+exam.value+"&campus="+campus.value)
 		.catch((err) => {
 			console.log(err);
 			notice.innerHTML = "Error:" + err.statusText;
@@ -149,7 +150,7 @@ function makeRequest(method, url) {
 		let xhr = new XMLHttpRequest();
 		xhr.open(method, url);
 		xhr.onload = function () {
-			if (this.status >= 200 && this.status < 300) {
+			if (this.status == 200) {
 				resolve(xhr);
 			} else {
 				reject({
