@@ -122,7 +122,15 @@ async function letsgooooo(){
 		notice.innerHTML = "Refreshing...";
 	notice.style = "color:orange;";
 
-	const response = await makeRequest("GET", "/json.php?json&month="+month.value+"&year="+year.value+"&exam="+exam.value);
+	const response = await makeRequest("GET", "/json.php?json&month="+month.value+"&year="+year.value+"&exam="+exam.value)
+		.catch((err) => {
+			console.log(err);
+			notice.innerHTML = "Error:" + err.statusText;
+			notice.style = "color:red;";
+			return null;
+		});
+	if (!response)
+		return;
 	const json = JSON.parse(response.responseText);
 	populateRankings(json);
 }
