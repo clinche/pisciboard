@@ -74,9 +74,29 @@ function get_users($exam)
 	$_SESSION['examusers'] = $examusers;
 }
 
+function populate_slugs($base, $max)
+{
+	$i = 0;
+	$slug = $base;
+	$slugs = [];
+	while ($i < $max)
+	{
+		if ($i < 9)
+			$slug = $base."0".($i + 1);
+		else
+			$slug = $base.($i + 1);
+		array_push($slugs, $slug);
+		$i++;
+	}
+	return ($slugs);
+}
+
 function first_update()
 {
 	$userinfo = [];
+	$cslugs = populate_slugs("c-piscine-c-", 13);
+	$examslugs = populate_slugs("c-piscine-exam-", 2);
+	$exam = ['00' => 0, '01' => 0, '02' => 0];
 	$lastc = 0;
 	$userid = 0;
 	$validated = "validated?";
@@ -87,64 +107,17 @@ function first_update()
 		$userid = $apicall->id;
 		foreach ($apicall->projects_users as $project)
 		{
-			if ($project->project->slug == "c-piscine-c-01" && $project->marked != false && $project->$validated == true && $lastc < 1)
-				$lastc = 1;
-			if ($project->project->slug == "c-piscine-c-02" && $project->marked != false && $project->$validated == true && $lastc < 2)
-				$lastc = 2;
-			if ($project->project->slug == "c-piscine-c-03" && $project->marked != false && $project->$validated == true && $lastc < 3)
-				$lastc = 3;
-			if ($project->project->slug == "c-piscine-c-04" && $project->marked != false && $project->$validated == true && $lastc < 4)
-				$lastc = 4;
-			if ($project->project->slug == "c-piscine-c-05" && $project->marked != false && $project->$validated == true && $lastc < 5)
-				$lastc = 5;
-			if ($project->project->slug == "c-piscine-c-06" && $project->marked != false && $project->$validated == true && $lastc < 6)
-				$lastc = 6;
-			if ($project->project->slug == "c-piscine-c-07" && $project->marked != false && $project->$validated == true && $lastc < 7)
-				$lastc = 7;
-			if ($project->project->slug == "c-piscine-c-08" && $project->marked != false && $project->$validated == true && $lastc < 8)
-				$lastc = 8;
-			if ($project->project->slug == "c-piscine-c-09" && $project->marked != false && $project->$validated == true && $lastc < 9)
-				$lastc = 9;
-			if ($project->project->slug == "c-piscine-c-10" && $project->marked != false && $project->$validated == true && $lastc < 10)
-				$lastc = 10;
-			if ($project->project->slug == "c-piscine-c-11" && $project->marked != false && $project->$validated == true && $lastc < 11)
-				$lastc = 11;
-			if ($project->project->slug == "c-piscine-c-12" && $project->marked != false && $project->$validated == true && $lastc < 12)
-				$lastc = 12;
-			if ($project->project->slug == "c-piscine-c-13" && $project->marked != false && $project->$validated == true && $lastc < 13)
-				$lastc = 13;
-			if ($project->project->slug == "c-piscine-exam-00")
-			{
-				$exam00 = $project->final_mark;
-				if ($exam00 == null)
-					$exam00 = 0;
-			}
-			if ($project->project->slug == "c-piscine-exam-01")
-			{
-				$exam01 = $project->final_mark;
-				if ($exam01 == null)
-					$exam01 = 0;
-			}
-			if ($project->project->slug == "c-piscine-exam-02")
-			{
-				$exam02 = $project->final_mark;
-				if ($exam02 == null)
-					$exam02 = 0;
-			}
-			if ($project->project->slug == "c-piscine-final-exam")
-			{
-				$examfinal = $project->final_mark;
-				if ($examfinal == null)
-					$examfinal = 0;
-			}
+			foreach ($cslugs as $slug)
+				if ($project->project->slug == $slug)
+					if ($project->$validated == true && $project->marked != false && $lastc < intval(substr($slug, -2), 10))
+						$lastc = intval(substr($slug, -2), 10);
+			foreach ($examslugs as $slug)
+				if ($project->project->slug == $slug)
+					$exam[substr($slug, -2)] = $project->final_mark;
 			if ($project->project->slug == $_SESSION['exam'])
-			{
 				$grade = $project->final_mark;
-			}
 		}
-		if ($grade == null)
-			$grade = 0;
-		$oldresults = array($lastc, $exam00, $exam01, $exam02);
+		$oldresults = array($lastc, $exam['00'], $exam['01'], $exam['02']);
 		$cote = determine_cote($oldresults);
 		$item = array($grade, $apicall->login, $apicall->image->link, $_SESSION['jsonrefresh'], 100, 1, 9, $cote, $oldresults, $userid);
 		array_push($userinfo, $item);
