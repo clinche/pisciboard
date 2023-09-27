@@ -10,7 +10,7 @@ function logger($msg)
 }
 
 
-function api_req($url_api)
+function api_req($url_api, $retry = 0)
 {
 	if (!isset($_SESSION['token']))
 	{
@@ -39,15 +39,31 @@ function api_req($url_api)
 
 	if (curl_getinfo($curl, CURLINFO_HTTP_CODE) != 200)
 	{
+		$retry++;
+		if ($retry > 5)
+		{
+			header('Content-Type:application/json');
+			header('Access-Control-Allow-Origin:*');
+			echo(json_encode(['status' => 500, 'message' => 'rate limit']));
+			exit();
+		}
 		$_SESSION['error'] = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 		logger("API call error: " . curl_getinfo($curl, CURLINFO_HTTP_CODE));
-		header('Location: /token.php?refresh');
-		exit();
+		usleep(400000);
+		return (api_req($url_api, $retry));
 	}
 
 	curl_close($curl);
 	$data = json_decode($resp);
 
+	if ($data->message == "The access token expired.")
+	{
+		refresh_tokens();
+		return api_req($url_api);
+	}
+	if ($url_api == "/v2/me")
+		logger("API call login: $data->login");
+	
 	return ($data);
 }
 

@@ -48,7 +48,7 @@ $campuses = get_campuses();
 				</select>
 				<select id="campus-select">
 				<?php foreach($campuses as $campus) { ?>
-					<option value="<?php echo $campus['id']; ?>"><?php echo $campus['name']; } ?></option>
+					<option value="<?php echo $campus['id'].'"'; if ($campus['name'] == "Angouleme") echo "selected"; echo '>' ?> <?php echo $campus['name'];} ?></option>
 				</select>
 				<button id="letsgo" onclick="main()">Let's goooooooo</button>
 				<button id="stop" onclick="letsnotgooooo()" disabled style="display: none">Let's not go :(</button>
@@ -71,7 +71,7 @@ $campuses = get_campuses();
 			</table>
 		</div>
 		<footer>
-			<p>📝 Frontend : dguet / rlaforge / ssubielo / ldournoi - 🛠️ Backend : ldournoi</p>
+			<p> dguet / rlaforge / ssubielo / ldournoi -  <a href="https://github.com/clinche/pisciboard"> <img style='max-width:16px;' src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAXCAQAAAC7KEemAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAACYktHRAD/h4/MvwAAAAlwSFlzAAA3XQAAN10BGYBGXQAAAAd0SU1FB+cHHgshAqu35ggAAAHaSURBVDjLfZNPSFRRFMa/eW6KQiFhFGmCsVErWrhwFglSgi2FiVZDuktoqS5aBm2G1oJtIhA3QpvWEtoiY8RWLcQh0CnMMYc3YeiIf2J+Ld6Z63sxznc2777z++7lnnNuTJIkZOrQPQ3pjtol+drQJ+W1F6RiciKIOJOsUSWsKl+YIh4QUXyYz1ykFYadxfAsuzTTLlmzIMQoZeCEg4bwAcdAmdG6oYd1AOYZ5AXfqPKTAgW2qbLJSwZ5DcA6PUh4zNhOzxAixQNSdNLBTe5zCyGeUANgBk8MsGOGaXRBPDVihwFPGXVJkk7lB9WOhiTpt44kSV16JPLm/sDVUK2jPbrEe6Pynnot81GHkW4q1N9jLdmy11ObffpqpopqkqQ2z23a2tTQKi840NMf+3VXMTW8g2UD7YtVu853bkdGLDxnSQpGrYqcG4F3dDbsQjtzjsmJNCVgkWX+ssI4qaC8CHGFbrIsW5+hRFq0MAsskuYtUKPEhDOM8YOz0BjO0iJEHwVgniQL/OIr/c7QTyWEb9BXH+8MFY54zGWSxIk5Q4Kiw30y5+9BjFHG5w3PmeQa9Qol2DJ8j/H/39yITVWJbme4QRGokedho1d9nRxltkmGTiji84rEOf4P/jNMd2ufPVAAAAAldEVYdGRhdGU6Y3JlYXRlADIwMjMtMDctMzBUMTE6MzI6NTMrMDA6MDCIxoFLAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDIzLTA3LTMwVDExOjMyOjUzKzAwOjAw+Zs59wAAACh0RVh0ZGF0ZTp0aW1lc3RhbXAAMjAyMy0wNy0zMFQxMTozMzowMiswMDowMK/bdsYAAAAASUVORK5CYII="/></a></p>
 		</footer>
 		<script type="text/javascript" src="./script.js"></script>
 	</body>

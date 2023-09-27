@@ -107,6 +107,7 @@ function toggleSelects(state){
 	month.disabled = !state;
 	year.disabled = !state;
 	exam.disabled = !state;
+	campus.disabled = !state;
 	letsgo.disabled = !state;
 	stop.disabled = state;
 }
@@ -120,7 +121,7 @@ async function letsgooooo(){
 		notice.innerHTML = "Getting users...";
 	}
 	else
-		notice.innerHTML = "Refreshing users infos... Grades are prioritized but undefineds will go away.";
+		notice.innerHTML = "Refreshing...";
 	notice.style = "color:orange;";
 
 	const response = await makeRequest("GET", "/json.php?json&month="+month.value+"&year="+year.value+"&exam="+exam.value+"&campus="+campus.value)
@@ -129,10 +130,16 @@ async function letsgooooo(){
 			notice.innerHTML = "Error:" + err.statusText;
 			notice.style = "color:red;";
 			return null;
-		});
+		})
 	if (!response)
 		return;
 	const json = JSON.parse(response.responseText);
+	if (json.message)
+	{
+		notice.innerHTML = "Error: " + json.message;
+		notice.style = "color:red;"
+		return null;
+	}
 	populateRankings(json);
 }
 
