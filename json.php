@@ -34,11 +34,11 @@ if (isset($_GET['json'])
 	{
 		$examid = get_exam_id();
 		if (!$examid)
-			output_error("Error: Exam not found");
+			output_error("Exam not found. Try cloning repo and adjusting exam variables in config.php");
 		$_SESSION['jsonrefresh'] = 0;
 		$_SESSION['examusers'] = get_users($examid);
 		if (!$_SESSION['examusers'])
-			output_error("Error: No users found. Please check your campus and month/year");
+			output_error("No users found. Please check your campus and month/year");
 		$_SESSION['usersjson'] = null;
 		output_json($_SESSION['examusers']);
 	}
@@ -75,7 +75,7 @@ function get_users($exam)
         $page++;
     } while (count($apicall) >= 100);
 
-    return $examusers;
+    return count($examusers) > 0 ? $examusers : null;
 }
 
 
@@ -263,7 +263,7 @@ function output_error($error)
 	http_response_code(400);
 	header('Content-Type:application/json');
 	header('Access-Control-Allow-Origin:*');
-	echo(json_encode($error));
+	echo(json_encode(array('message' => $error)));
 	exit();
 }
 

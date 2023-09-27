@@ -124,13 +124,7 @@ async function letsgooooo(){
 		notice.innerHTML = "Refreshing...";
 	notice.style = "color:orange;";
 
-	const response = await makeRequest("GET", "/json.php?json&month="+month.value+"&year="+year.value+"&exam="+exam.value+"&campus="+campus.value)
-		.catch((err) => {
-			console.log(err);
-			notice.innerHTML = "Error:" + err.statusText;
-			notice.style = "color:red;";
-			return null;
-		})
+	const response = await makeRequest("GET", "/json.php?json&month="+month.value+"&year="+year.value+"&exam="+exam.value+"&campus="+campus.value);
 	if (!response)
 		return;
 	const json = JSON.parse(response.responseText);
@@ -157,14 +151,7 @@ function makeRequest(method, url) {
 		let xhr = new XMLHttpRequest();
 		xhr.open(method, url);
 		xhr.onload = function () {
-			if (this.status == 200) {
-				resolve(xhr);
-			} else {
-				reject({
-					status: this.status,
-					statusText: xhr.statusText
-				});
-			}
+			resolve(xhr);
 		};
 		xhr.onerror = function () {
 			reject({
