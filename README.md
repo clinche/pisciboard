@@ -1,7 +1,7 @@
 # pisciboard
 
 ## howto
-1. create an [api app here](https://profile.intra.42.fr/oauth/applications/new)
+1. create an [api app here](https://profile.intra.42.fr/oauth/applications/new) with redirect uri `http://localhost:8080/token.php`
 2. `mv secret.php{.example,} && vi secret.php`
 3. `docker compose up`
 4. go to localhost:8080

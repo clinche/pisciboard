@@ -1,15 +1,6 @@
 <?php
-
-function logger($msg)
-{
-	$fileinfo = 'nofileinfo';
-	$backtrace = debug_backtrace();
-	if (!empty($backtrace[0]) && is_array($backtrace[0]))
-		$fileinfo = $backtrace[0]['file'] . ':' . $backtrace[0]['line'];
-	error_log('['.$fileinfo.']' . ' - ' . $msg);
-}
-
-
+require_once('secret.php');
+require_once('utils.php');
 function api_req($url_api, $retry = 0)
 {
 	if (!isset($_SESSION['token']))
@@ -56,7 +47,7 @@ function api_req($url_api, $retry = 0)
 	curl_close($curl);
 	$data = json_decode($resp);
 
-	if ($data->message == "The access token expired.")
+	if (isset($data->message) && $data->message == "The access token expired.")
 	{
 		refresh_tokens();
 		return api_req($url_api);
@@ -135,17 +126,5 @@ function refresh_tokens()
 	$_SESSION['refreshtok'] = $second_token;
 }
 
-function get_campuses()
-{
-	$data = api_req("/v2/campus?per_page=100");
-	$campuses = [];
-	foreach ($data as $campus)
-	{
-		array_push($campuses, ['name' => $campus->name,
-							   'id' => $campus->id]);
-	}
-	sort($campuses);
-	return ($campuses);
-}
 
 ?>

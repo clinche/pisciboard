@@ -1,11 +1,11 @@
 <?php
 session_start();
-include_once("config.php");
-include_once("api42.php");
+require_once("api42.php");
+require_once("utils.php");
 
 if (!isset($_SESSION['token']))
 	header('Location: /token.php');
-$campuses = get_campuses();
+$campuses = getCampuses();
 ?>
 
 <!DOCTYPE html>
@@ -33,12 +33,16 @@ $campuses = get_campuses();
 					<option value="december">December</option>
 				</select>
 				<select id="year-select">
-					<option value="2019">2019</option>
-					<option value="2020">2020</option>
-					<option value="2021">2021</option>
-					<option value="2022">2022</option>
-					<option value="2023" selected>2023</option>
-					<option value="2024">2024</option>
+					<?php
+					$year = date('Y');
+					for ($i = 2015; $i <= intval($year); $i++)
+					{
+						echo "<option value=\"$i\"";
+						if ($i == $year)
+							echo " selected";
+						echo ">$i</option>";
+					}
+					?>
 				</select>
 				<select id="exam-select">
 					<option value="c-piscine-exam-00">Exam 00</option>
