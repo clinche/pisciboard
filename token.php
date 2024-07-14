@@ -1,6 +1,6 @@
 <?php
+	session_start();
 	require_once('secret.php');
-	require_once('config.php');
 	require_once('api42.php');
 
 	if (!isset($_GET['code']) && !isset($_GET['refresh']))
